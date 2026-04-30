@@ -9,7 +9,7 @@ r = redis.Redis(
 
 @app.route('/health')
 def health():
-    return jsonify({'status': 'ok'})
+    return jsonify({'status': 'ok', 'version': 'v2'})
 
 @app.route('/shorten', methods=['POST'])
 def shorten():
