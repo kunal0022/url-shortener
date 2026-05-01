@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build, Push and Deploy
 
 on:
   push:
@@ -7,6 +7,8 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ github.sha }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,3 +27,30 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/url-shortener-api:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/url-shortener-api:${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.29.2'
+
+      - name: Set kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+
+      - name: Update deployment image
+        run: |
+          kubectl set image deployment/api \
+            api=${{ secrets.DOCKERHUB_USERNAME }}/url-shortener-api:${{ github.sha }} \
+            -n url-shortener
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/api -n url-shortener
