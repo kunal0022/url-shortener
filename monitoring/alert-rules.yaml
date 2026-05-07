@@ -1,0 +1,58 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: url-shortener-alerts
+  namespace: url-shortener
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: url-shortener.rules
+      rules:
+        - alert: HighCPUUsage
+          expr: |
+            rate(container_cpu_usage_seconds_total{
+              namespace="url-shortener",
+              container="api"
+            }[5m]) > 0.8
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High CPU on API pod"
+            description: "API pod CPU above 80% for 2 minutes"
+
+        - alert: PodCrashLooping
+          expr: |
+            rate(kube_pod_container_status_restarts_total{
+              namespace="url-shortener"
+            }[15m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod crash looping"
+            description: "Pod {{ $labels.pod }} is crash looping"
+
+        - alert: HighMemoryUsage
+          expr: |
+            container_memory_usage_bytes{
+              namespace="url-shortener",
+              container="api"
+            } > 200000000
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory on API pod"
+            description: "API memory above 200MB"
+
+        - alert: APIDown
+          expr: |
+            up{job="url-shortener"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "API is down"
+            description: "URL shortener API is not responding"
