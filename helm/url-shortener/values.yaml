@@ -1,0 +1,27 @@
+replicaCount: 2
+image:
+  repository: docker002275/url-shortener-api
+  tag: latest
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 300m
+    memory: 256Mi
+redis:
+  host: redis
+  port: 6379
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  cpuUtilization: 50
+  memoryUtilization: 70
+jaeger:
+  endpoint: "http://jaeger.observability.svc:4317"
